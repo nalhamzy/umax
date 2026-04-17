@@ -16,22 +16,26 @@ import '../models/user_profile.dart';
 ///
 /// The numbers are deliberately generous and repeatable — nobody gets a 12.
 class FaceAnalyzer {
-  final FaceDetector _detector = FaceDetector(
-    options: FaceDetectorOptions(
-      enableContours: true,
-      enableLandmarks: true,
-      enableClassification: true,
-      performanceMode: FaceDetectorMode.accurate,
-      minFaceSize: 0.3,
-    ),
-  );
+  FaceDetector? _detector;
+
+  FaceDetector _ensureDetector() {
+    return _detector ??= FaceDetector(
+      options: FaceDetectorOptions(
+        enableContours: true,
+        enableLandmarks: true,
+        enableClassification: true,
+        performanceMode: FaceDetectorMode.accurate,
+        minFaceSize: 0.3,
+      ),
+    );
+  }
 
   Future<FaceAnalysis?> analyze({
     required File imageFile,
     required UserProfile profile,
   }) async {
     final input = InputImage.fromFile(imageFile);
-    final faces = await _detector.processImage(input);
+    final faces = await _ensureDetector().processImage(input);
     if (faces.isEmpty) return null;
 
     // Pick largest face
@@ -113,7 +117,10 @@ class FaceAnalyzer {
     );
   }
 
-  Future<void> dispose() => _detector.close();
+  Future<void> dispose() async {
+    await _detector?.close();
+    _detector = null;
+  }
 
   int _seedFromFile(File f) {
     try {
